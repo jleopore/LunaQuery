@@ -150,7 +150,7 @@ class Enumerable
       groupIndex = 1
       result[i] = {}
       for iKeyVal in *keyedInner
-        iKey, iItem = unpack iKeyVal
+        iKey, iItem = iKeyVal[1], iKeyVal[2]
         if equalComparer(outerSelector(oItem), iKey) --if outerselector and innerselector keys match..
           result[i][groupIndex] = resultSelector(oItem, iItem)
           iGroup += 1
@@ -179,7 +179,7 @@ class Enumerable
     iResult, result = 1, {}
     for item in iter(@)
       for iKeyVal in *keyedInner
-        ikey, iItem = unpack iKeyVal
+        ikey, iItem = iKeyVal[1], iKeyVal[2]
         if equalComparer(outerSelector(item), ikey)
           result[iResult] = resultSelector(item, iItem)
           iResult += 1
@@ -187,7 +187,8 @@ class Enumerable
 
   last: (predicate = defaultPredicate) =>
     found = false
-    for item in iter(@) when predicate(item)
+    for item in iter(@) 
+      continue unless predicate(item)
       found = true
       result = item 
     if found then return result
@@ -216,21 +217,11 @@ class Enumerable
 
   ofType: (whichType) => @@([item for item in iter(@) when type(item) == whichType])
 
-  ---TODO: deferred execution to support thenBy
-  -- @items is a collection of equally-ordered sets.
-  -- within each equally-ordered set, sort according to the keyselector.
   orderBy: (keySelector = defaultSelector, comparer = defaultComparer) =>
-    indexKeyPairs = [{i, keySelector(item)} for i, item in iterPairs(@)]
-    result = hybridSort(indexKeyPairs, valueComparerFactory(comparer))
-    result[i] = @items[(unpack item)] for i, item in ipairs result
-    @@(result, @length, @orderedBy + 1)
+    @@(sortAndGroup(@items, @orderedBy, keySelector, comparer), @length, @orderedBy + 1)
 
-  ---TODO:
   orderByDescending: (keySelector = defaultSelector, comparer = defaultComparer) =>
-    indexKeyPairs = [{i, keySelector(item)} for i, item in ipairs @items]
-    result = hybridSort(indexKeyPairs, valueComparerFactory(comparer, true))
-    result[i] = @items[(unpack item)] for i, item in ipairs result
-    @@(result, @length, @orderedBy + 1)
+    @@(sortAndGroup(@items, @orderedBy, keySelector, comparer, true), @length, @orderedBy + 1)
 
   prepend: (element) =>     
     result = {element}
@@ -329,11 +320,11 @@ class Enumerable
 
   thenBy: (keySelector = defaultSelector, comparer = defaultComparer) => 
     assert @orderedBy > 0, 'not implemented'
-    orderBy(@, keySelector, comparer)
+    @@(sortAndGroup(@items, @orderedBy, keySelector, comparer), @length, @orderedBy + 1)
 
   thenByDescending: (keySelector = defaultSelector, comparer = defaultComparer) => 
     assert @orderedBy > 0, 'not implemented'
-    orderByDescending(@, keySelector, comparer)
+    @@(sortAndGroup(@items, @orderedBy, keySelector, comparer, true), @length, @orderedBy + 1)
 
   toArray: => [item for item in iter(@)]
   
@@ -417,13 +408,13 @@ class Enumerable
     else
       d = depth - 1
       i = 1
-      myIter = myfunc(t[i], d)
+      myIter = enumerate(t[i], d)
       ->
         nextval = myIter!       
         return nextval unless nextval == nil
         i += 1
         if t[i] == nil then return nil
-        myIter = myfunc(t[i], d)
+        myIter = enumerate(t[i], d)
         myIter!
 
   enumeratePairs = (t, depth) ->
@@ -439,7 +430,7 @@ class Enumerable
     if depth > 0    --we need to go deeper
       return [sortAndGroup(t[i], depth - 1, keySelector, comparer, descending) for i = 1, #t]    
     itemKeyPairs = [{item, keySelector(item)} for item in *t]
-    sortedIKPs = hybridSort(indexKeyPairs, valueComparerFactory(comparer, descending))
+    sortedIKPs = hybridSort(itemKeyPairs, valueComparerFactory(comparer, descending))
     groupItemsByKey(sortedIKPs, comparer)
 
   groupItemsByKey = (sortedItemPairs, comparer) ->
@@ -456,8 +447,8 @@ class Enumerable
   -- before comparing
   valueComparerFactory = (comparer, descending) ->
     (a,b) ->
-      _, valueA = unpack a
-      _, valueB = unpack b
+      valueA = a[2]
+      valueB = b[2]
       --{_, valueA}, {_, valueB} = unpack(a), unpack(b)
       if descending then -comparer(valueA, valueB) else comparer(valueA, valueB)
 
