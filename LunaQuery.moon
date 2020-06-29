@@ -1,11 +1,10 @@
 --- Fluent, Linq-Style Query Expressions for Lua
--- @classmod LunaQuery
---
+
 -- Uses fluent syntax to query datasets like directory trees, XML, and JSON objects
--- Ordering expressions use deferred execution
 -- Differences relecting lua's table type: 
 -- 'toList' and 'toArray' produce the same result, 'cast' is not implemented, and 
 -- 'toDictionary' and 'toHashSet' don't take an equality comparer param
+-- 'repeat' is renamed 'repeatElement' to avoid collision with lua's repeat keyword
 local *
 class Enumerable
   new: (collection, count, orderedBy) => 
@@ -16,7 +15,7 @@ class Enumerable
   defaultSelector = (a) -> a
   defaultPredicate = (a) -> true
   defaultEqualComparer = (a, b) -> a == b
-  defaultResultSelector = (a, b) -> {a, b}
+  defaultResultSelector = (a, b) -> {a,b}
   defaultComparer = (a, b) -> if a > b then 1 else if a < b then -1 else 0
 
   iter = => enumerate(@items, @orderedBy)
@@ -27,7 +26,7 @@ class Enumerable
     result = accumulator(result, item) for item in iter(@)
     result
 
-  all: (predicate = defaultPredicate) =>
+  all: (predicate) =>
     return false for item in iter(@) when not predicate(item)
     true
 
@@ -63,45 +62,47 @@ class Enumerable
     sum += 1 for item in iter(@) when predicate(item)
     sum  
 
-  defaultIfEmpty: (default) => if iter(@)! == nil then return {default} else return @@(@items)
+  defaultIfEmpty: (default) => if iter(@)! == nil then return @@({default}) else return @@(@items)
 
   distinct: (equalComparer = defaultEqualComparer) =>
     result = {}
     index = 1
     for item in iter(@)
+      duplicate = false
       for saved in *result
-        continue if equalComparer(item, saved)
+        duplicate = true if equalComparer(item, saved)
+      unless duplicate
         result[index] = item 
         index += 1
     @@(result)
 
   elementAt: (index) => 
-    if i == index return item for i,item in iterPairs(@)
+    return item for i,item in iterPairs(@) when i == index
     assert false, 'No element at the given index'
 
   elementAtOrDefault: (index, default) => 
-    if i == index return item for i,item in iterPairs(@)
+    return item for i,item in iterPairs(@) when i == index
     default
 
-  empty: => @@!
+  empty: => @@({})
 
   --- distinct elements in this enum but not in the second
   except: (second, equalComparer = defaultEqualComparer) => 
-    result = {}
-    resultIndex = 1
+    result, i = {}, 1
     for item in iter(@)
       duplicate = false
       for saved in *result
         if equalComparer(item, saved)
           duplicate = true
-          continue --TODO: should be break?
-      for other in iter(second)
-        if equalComparer(item, other) 
-          duplicate = true
-          continue  --TODO: should be break?
-      continue if duplicate --TODO: should be break?
-      result[index] = item
-      resultIndex += 1
+          break
+      unless duplicate
+        for other in iter(second)
+          if equalComparer(item, other) 
+            duplicate = true
+            break
+      continue if duplicate
+      result[i] = item
+      i += 1
     @@(result)
     
   first: (predicate = defaultPredicate) =>
@@ -132,28 +133,34 @@ class Enumerable
   --   [2]: {[5]: {horse, sheep, whale}}
   -- }
   -- 
-  groupBy: (keySelector, valueSelector = defaultSelector, resultSelector = defaultSelector, equalComparer) =>   
+  groupBy: (keySelector, valueSelector = defaultSelector, resultSelector = defaultResultSelector, equalComparer = defaultEqualComparer) =>   
     result = {}
     for item in iter(@)
       key = keySelector(item)
-      if result[key] == nil
-        result[key] = {valueSelector(item)}
-      else 
-        result[key][#result[key] + 1] = valueSelector(item)
-    @@(resultSelector([{k:v} for k,v in ipairs result]))
+      duplicateKey = false
+      for i, existingKVs in ipairs result
+        existingKey = existingKVs[1]
+        if equalComparer(existingKey, key)
+          duplicateKey = true
+          existingValues = result[i][2]
+          existingValues[#existingValues + 1] = valueSelector(item)
+          break
+      unless duplicateKey
+        result[#result + 1] = {key, {valueSelector(item)}}
+    @@([resultSelector(kv[1], kv[2]) for kv in *result])
 
-  --TODO: test this confusing method
   groupJoin: (inner, outerSelector, innerSelector, resultSelector, equalComparer = defaultEqualComparer) =>
     keyedInner = [{innerSelector(item), item} for item in iter(inner)]
     result = {}
     for i, oItem in iterPairs(@)
-      groupIndex = 1
-      result[i] = {}
+      outerKey = outerSelector(oItem)
+      group, groupIndex = {}, 1
       for iKeyVal in *keyedInner
-        iKey, iItem = iKeyVal[1], iKeyVal[2]
-        if equalComparer(outerSelector(oItem), iKey) --if outerselector and innerselector keys match..
-          result[i][groupIndex] = resultSelector(oItem, iItem)
-          iGroup += 1
+        innerKey, innerItem = iKeyVal[1], iKeyVal[2]
+        if equalComparer(outerKey, innerKey) --if outerselector and innerselector keys match..
+          group[groupIndex] = innerItem
+          groupIndex += 1
+      result[i] = resultSelector(oItem, group)
     @@(result)    
 
   intersect: (second, equalComparer = defaultEqualComparer) =>
@@ -186,12 +193,9 @@ class Enumerable
     @@(result)
 
   last: (predicate = defaultPredicate) =>
-    found = false
-    for item in iter(@) 
-      continue unless predicate(item)
-      found = true
-      result = item 
-    if found then return result
+    result = nil
+    result = item for item in iter(@) when predicate(item)      
+    return result unless result == nil
     assert false, 'No item matches the predicate'
 
   lastOrDefault: (default, predicate = defaultPredicate) =>    
@@ -218,10 +222,10 @@ class Enumerable
   ofType: (whichType) => @@([item for item in iter(@) when type(item) == whichType])
 
   orderBy: (keySelector = defaultSelector, comparer = defaultComparer) =>
-    @@(sortAndGroup(@items, @orderedBy, keySelector, comparer), @length, @orderedBy + 1)
+    @@(sortAndGroup([item for item in iter(@)], 0, keySelector, comparer), @length, 1)
 
   orderByDescending: (keySelector = defaultSelector, comparer = defaultComparer) =>
-    @@(sortAndGroup(@items, @orderedBy, keySelector, comparer, true), @length, @orderedBy + 1)
+    @@(sortAndGroup([item for item in iter(@)], 0, keySelector, comparer, true), @length, 1)
 
   prepend: (element) =>     
     result = {element}
@@ -230,7 +234,7 @@ class Enumerable
 
   range: (start, count) => @@([i for i=start, start + count - 1])
 
-  repeat: (element, count) => @@([element for i=start, start + count - 1])
+  repeatElement: (element, count) => @@([element for i=1,count])
 
   reverse: => 
     result, r = {}, @length + 1
@@ -240,26 +244,12 @@ class Enumerable
  
   select: (selector) => @@([selector(item, i) for i, item in iterPairs(@)])
 
-  ---This takes as input a collection like this:
-  -- {
-  --   [1]: {'dog', 'cow', 'bear'}
-  --   [2]: {'fish'}
-  --   [3]: {'mouse', 'buffalo'}
-  -- }
-  -- -- And outputs this:
-  -- {
-  --   [1]: {'dog', 3}
-  --   [2]: {'cow', 3}
-  --   [3]: {'bear', 4}
-  --   [4]: {'fish', 4}
-  --   [5]: {'mouse', 5}
-  --   [6]: {'buffalo', 7}
-  -- }
-  selectMany: (collectionSelector = defaultSelector, resultSelector = defaultSelector) =>    
+  selectMany: (collectionSelector, resultSelector = defaultSelector) =>
+    collectionSelector = collectionSelector or defaultSelector
     result = {}
     for i, item in iterPairs(@)
       start = #result
-      sequence = selector(item, i)
+      sequence = collectionSelector(item, i)
       result[iSeq + start] = resultSelector(item, iSeq) for iSeq, item in ipairs sequence
     @@(result)
 
@@ -272,13 +262,15 @@ class Enumerable
 
   single: (predicate = defaultPredicate) =>    
     result = [item for item in iter(@) when predicate(item)]
-    assert #result == 0, 'collection is empty'
-    assert #result != 1, 'collection has multiple values'
+    assert #result != 0, 'collection is empty'
+    assert #result == 1, 'collection has multiple values'
     result[1]
 
   singleOrDefault: (default, predicate = defaultPredicate) =>    
     result = [item for item in iter(@) when predicate(item)]
-    if #result == 1 then result[1] else default 
+    return default if #result == 0
+    assert #result == 1, 'collection has multiple values'
+    result[1]
 
   skip: (count) => @@[item for i,item in iterPairs(@) when i > count]
 
@@ -294,8 +286,7 @@ class Enumerable
       item = getItem!
       unless predicate(item)
         result[1] = item
-        for j = i + 1, @length
-          result[j] = getItem!
+        result[j] = getItem! for j = 2, @length - i + 1          
         break
     @@(result)
 
@@ -326,21 +317,8 @@ class Enumerable
     assert @orderedBy > 0, 'not implemented'
     @@(sortAndGroup(@items, @orderedBy, keySelector, comparer, true), @length, @orderedBy + 1)
 
-  toArray: => [item for item in iter(@)]
-  
-  -- input:
-  -- {
-  --   {forest: {'bear', 'wolf', 'hawk'}}
-  --   {farm: {'pig', 'ox', 'cow'}}
-  --   {house: {'dog', 'cat'}}
-  -- }
-  -- output:
-  -- {
-  --   bear: {forest: {'bear', 'wolf', 'hawk'}}
-  --   pig: {farm: {'pig', 'ox', 'cow'}}
-  --   dog: {house: {'dog', 'cat'}}
-  -- }
-  --@param keyselector produces a key for each value in the collection.
+  toArray: => [item for item in iter(@)]  
+
   toDictionary: (keySelector, valueSelector = defaultSelector) =>
     result = {}
     for item in iter(@)
@@ -372,13 +350,21 @@ class Enumerable
     result = {}
     index = 1
     for item in iter(@)
+      duplicate = false
       for saved in *result
-        break if equalComparer(item, saved)
+        if equalComparer(item, saved)
+          duplicate = true 
+          break
+      unless duplicate
         result[index] = item 
         index += 1
     for item in iter(second)
+      duplicate = false
       for saved in *result
-        break if equalComparer(item, saved)
+        if equalComparer(item, saved)
+          duplicate = true 
+          break
+      unless duplicate
         result[index] = item 
         index += 1
     @@(result)
@@ -396,7 +382,7 @@ class Enumerable
 
 
   -- Utilities
-  -- *******************
+  --------------
 
   -- single-level tree traversal of table t at level 'depth'
   enumerate = (t, depth) ->
@@ -423,7 +409,7 @@ class Enumerable
     ->
       i += 1
       item = getItem!
-      if item == nil then return nil
+      return nil if item == nil 
       i, item
 
   sortAndGroup = (t, depth, keySelector, comparer, descending) ->
@@ -443,13 +429,11 @@ class Enumerable
         result[r] = {sortedItemPairs[i][1]}
     result
 
-  ---Given a comparer that takes A and B, create a new function that unpacks
-  -- before comparing
+  ---Given a comparer that takes A and B, create a new function that 
+  -- compares only the value of a key-value pair
   valueComparerFactory = (comparer, descending) ->
     (a,b) ->
-      valueA = a[2]
-      valueB = b[2]
-      --{_, valueA}, {_, valueB} = unpack(a), unpack(b)
+      valueA, valueB = a[2], b[2]
       if descending then -comparer(valueA, valueB) else comparer(valueA, valueB)
 
   --- Hybrid merge sort using insertion sort for small collections
