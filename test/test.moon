@@ -1,4 +1,4 @@
-import Enumerable from require 'LunaQuery'
+import Enumerable from require 'src.LunaQuery'
 isSame = (require 'test.util').deepcompare
 
 --Sample Data
