@@ -1030,6 +1030,4 @@ do
   end
   Enumerable = _class_0
 end
-return {
-  Enumerable = Enumerable
-}
+return Enumerable

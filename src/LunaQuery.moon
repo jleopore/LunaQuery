@@ -473,4 +473,4 @@ class Enumerable
         r += 1
         return right[r - 1]
 
-{ :Enumerable }
+Enumerable
