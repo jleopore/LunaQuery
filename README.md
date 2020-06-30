@@ -12,7 +12,7 @@ Otherwise, just copy LunaQuery.lua to your project directory or lua path.
 
 ## Import
 ```lua
-Enumerable = (require 'LunaQuery').Enumerable
+Enumerable = require 'LunaQuery'
 ```
 
 ## Methods
