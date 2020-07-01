@@ -21,7 +21,7 @@ dependencies = {
 
 source = {
 	url = "git://github.com/jleopore/LunaQuery.git",
-  tag = "0.9"
+  --tag = "v0.9"
 }
 
 build = {
