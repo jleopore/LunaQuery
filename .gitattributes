@@ -1,2 +1,5 @@
-#let GitHub Linguist know that this file is generated, not source.
+#GitHub Linguist: this file is generated.
 LunaQuery.lua linguist-generated
+
+#GitHub Linguist: this file is 3rd-party.
+test/utils.lua linguist-vendored
