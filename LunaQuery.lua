@@ -1,10 +1,9 @@
 local Enumerable
 do
   local _class_0
-  local defaultSelector, defaultPredicate, defaultEqualComparer, defaultResultSelector, defaultComparer, iter, iterPairs, enumerate, enumeratePairs, sortAndGroup, groupItemsByKey, valueComparerFactory, hybridSort, insertionSort, merge, load, stringLambda, getFunction
+  local defaultSelector, defaultPredicate, defaultEqualComparer, defaultResultSelector, defaultComparer, iter, iterPairs, enumerate, enumeratePairs, sortAndGroup, groupItemsByKey, valueComparerFactory, hybridSort, insertionSort, merge
   local _base_0 = {
     aggregate = function(self, accumulator, initialValue)
-      accumulator = getFunction(accumulator)
       local result = initialValue
       for item in iter(self) do
         result = accumulator(result, item)
@@ -12,7 +11,6 @@ do
       return result
     end,
     all = function(self, predicate)
-      predicate = getFunction(predicate)
       for item in iter(self) do
         if not predicate(item) then
           return false
@@ -24,7 +22,6 @@ do
       if predicate == nil then
         predicate = defaultPredicate
       end
-      predicate = getFunction(predicate)
       for item in iter(self) do
         if predicate(item) then
           return true
@@ -41,7 +38,6 @@ do
       if selector == nil then
         selector = defaultSelector
       end
-      selector = getFunction(selector)
       local sum, count = 0, 0
       for item in iter(self) do
         sum = sum + selector(item)
@@ -64,7 +60,6 @@ do
       if equalComparer == nil then
         equalComparer = defaultEqualComparer
       end
-      equalComparer = getFunction(equalComparer)
       for item in iter(self) do
         if equalComparer(value, item) then
           return true
@@ -76,7 +71,6 @@ do
       if predicate == nil then
         predicate = defaultPredicate
       end
-      predicate = getFunction(predicate)
       local sum = 0
       for item in iter(self) do
         if predicate(item) then
@@ -98,7 +92,6 @@ do
       if equalComparer == nil then
         equalComparer = defaultEqualComparer
       end
-      equalComparer = getFunction(equalComparer)
       local result = { }
       local index = 1
       for item in iter(self) do
@@ -139,7 +132,6 @@ do
       if equalComparer == nil then
         equalComparer = defaultEqualComparer
       end
-      equalComparer = getFunction(equalComparer)
       local result, i = { }, 1
       for item in iter(self) do
         local _continue_0 = false
@@ -178,7 +170,6 @@ do
       if predicate == nil then
         predicate = defaultPredicate
       end
-      predicate = getFunction(predicate)
       for item in iter(self) do
         if predicate(item) then
           return item
@@ -190,7 +181,6 @@ do
       if predicate == nil then
         predicate = defaultPredicate
       end
-      predicate = getFunction(predicate)
       for item in iter(self) do
         if predicate(item) then
           return item
@@ -199,7 +189,6 @@ do
       return default
     end,
     forEach = function(self, action)
-      action = getFunction(action)
       for item in iter(self) do
         action(item)
       end
@@ -251,10 +240,6 @@ do
       if equalComparer == nil then
         equalComparer = defaultEqualComparer
       end
-      keySelector = getFunction(keySelector)
-      valueSelector = getFunction(valueSelector)
-      resultSelector = getFunction(resultSelector)
-      equalComparer = getFunction(equalComparer)
       local result = { }
       for item in iter(self) do
         local key = keySelector(item)
@@ -292,10 +277,6 @@ do
       if equalComparer == nil then
         equalComparer = defaultEqualComparer
       end
-      outerSelector = getFunction(outerSelector)
-      innerSelector = getFunction(innerSelector)
-      resultSelector = getFunction(resultSelector)
-      equalComparer = getFunction(equalComparer)
       local keyedInner
       do
         local _accum_0 = { }
@@ -329,7 +310,6 @@ do
       if equalComparer == nil then
         equalComparer = defaultEqualComparer
       end
-      equalComparer = getFunction(equalComparer)
       local result = { }
       for item in iter(self) do
         local _continue_0 = false
@@ -368,10 +348,6 @@ do
       if equalComparer == nil then
         equalComparer = defaultEqualComparer
       end
-      outerSelector = getFunction(outerSelector)
-      innerSelector = getFunction(innerSelector)
-      resultSelector = getFunction(resultSelector)
-      equalComparer = getFunction(equalComparer)
       local keyedInner
       do
         local _accum_0 = { }
@@ -402,7 +378,6 @@ do
       if predicate == nil then
         predicate = defaultPredicate
       end
-      predicate = getFunction(predicate)
       local result = nil
       for item in iter(self) do
         if predicate(item) then
@@ -418,7 +393,6 @@ do
       if predicate == nil then
         predicate = defaultPredicate
       end
-      predicate = getFunction(predicate)
       local result = default
       for item in iter(self) do
         if predicate(item) then
@@ -431,7 +405,6 @@ do
       if selector == nil then
         selector = defaultSelector
       end
-      selector = getFunction(selector)
       local getItem = iter(self)
       local result = selector(getItem())
       for i = 2, self.length do
@@ -446,7 +419,6 @@ do
       if selector == nil then
         selector = defaultSelector
       end
-      selector = getFunction(selector)
       local getItem = iter(self)
       local result = selector(getItem())
       for i = 2, self.length do
@@ -477,8 +449,6 @@ do
       if comparer == nil then
         comparer = defaultComparer
       end
-      keySelector = getFunction(keySelector)
-      comparer = getFunction(comparer)
       return self.__class(sortAndGroup((function()
         local _accum_0 = { }
         local _len_0 = 1
@@ -496,8 +466,6 @@ do
       if comparer == nil then
         comparer = defaultComparer
       end
-      keySelector = getFunction(keySelector)
-      comparer = getFunction(comparer)
       return self.__class(sortAndGroup((function()
         local _accum_0 = { }
         local _len_0 = 1
@@ -547,7 +515,6 @@ do
       return self.__class(result)
     end,
     select = function(self, selector)
-      selector = getFunction(selector)
       return self.__class((function()
         local _accum_0 = { }
         local _len_0 = 1
@@ -562,8 +529,7 @@ do
       if resultSelector == nil then
         resultSelector = defaultSelector
       end
-      collectionSelector = getFunction(collectionSelector or defaultSelector)
-      resultSelector = getFunction(resultSelector)
+      collectionSelector = collectionSelector or defaultSelector
       local result = { }
       for i, item in iterPairs(self) do
         local start = #result
@@ -581,7 +547,6 @@ do
       if not (self.length == second.length) then
         return false
       end
-      equalComparer = getFunction(equalComparer)
       local getItem1, getItem2 = iter(self), iter(second)
       for i = 1, self.length do
         if not (equalComparer(getItem1(), getItem2())) then
@@ -594,7 +559,6 @@ do
       if predicate == nil then
         predicate = defaultPredicate
       end
-      predicate = getFunction(predicate)
       local result
       do
         local _accum_0 = { }
@@ -615,7 +579,6 @@ do
       if predicate == nil then
         predicate = defaultPredicate
       end
-      predicate = getFunction(predicate)
       local result
       do
         local _accum_0 = { }
@@ -655,7 +618,6 @@ do
       return self.__class(result)
     end,
     skipWhile = function(self, predicate)
-      predicate = getFunction(predicate)
       local result, getItem = { }, iter(self)
       for i = 1, self.length do
         local item = getItem()
@@ -673,7 +635,6 @@ do
       if selector == nil then
         selector = defaultSelector
       end
-      selector = getFunction(selector)
       local sum = 0
       for item in iter(self) do
         sum = sum + selector(item)
@@ -705,7 +666,6 @@ do
       end)())
     end,
     takeWhile = function(self, predicate)
-      predicate = getFunction(predicate)
       local result = { }
       for i, item in iterPairs(self) do
         if predicate(item) then
@@ -723,8 +683,6 @@ do
       if comparer == nil then
         comparer = defaultComparer
       end
-      keySelector = getFunction(keySelector)
-      comparer = getFunction(comparer)
       assert(self.orderedBy > 0, 'not implemented')
       return self.__class(sortAndGroup(self.items, self.orderedBy, keySelector, comparer), self.length, self.orderedBy + 1)
     end,
@@ -735,8 +693,6 @@ do
       if comparer == nil then
         comparer = defaultComparer
       end
-      keySelector = getFunction(keySelector)
-      comparer = getFunction(comparer)
       assert(self.orderedBy > 0, 'not implemented')
       return self.__class(sortAndGroup(self.items, self.orderedBy, keySelector, comparer, true), self.length, self.orderedBy + 1)
     end,
@@ -753,8 +709,6 @@ do
       if valueSelector == nil then
         valueSelector = defaultSelector
       end
-      keySelector = getFunction(keySelector)
-      valueSelector = getFunction(valueSelector)
       local result = { }
       for item in iter(self) do
         local k = keySelector(item)
@@ -789,8 +743,6 @@ do
       if valueSelector == nil then
         valueSelector = defaultSelector
       end
-      keySelector = getFunction(keySelector)
-      valueSelector = getFunction(valueSelector)
       local result = { }
       for item in iter(self) do
         local k = keySelector(item)
@@ -805,7 +757,6 @@ do
       if equalComparer == nil then
         equalComparer = defaultEqualComparer
       end
-      equalComparer = getFunction(equalComparer)
       local result = { }
       local index = 1
       for item in iter(self) do
@@ -839,7 +790,6 @@ do
       return self.__class(result)
     end,
     where = function(self, predicate)
-      predicate = getFunction(predicate)
       return self.__class((function()
         local _accum_0 = { }
         local _len_0 = 1
@@ -856,7 +806,6 @@ do
       if resultSelector == nil then
         resultSelector = defaultResultSelector
       end
-      resultSelector = getFunction(resultSelector)
       if length == 0 then
         return { }
       end
@@ -1078,22 +1027,6 @@ do
         return right[r - 1]
       end
     end
-  end
-  load = _G.loadstring or _G.load
-  stringLambda = function(str)
-    local arrowStart = assert(string.find(str, '->'), 'Invalid string lambda: "' .. str .. '"')
-    local argStr = string.sub(str, 1, arrowStart - 1)
-    argStr = string.gsub(string.gsub(argStr, '%(', ''), '%)', '')
-    local exprStr = string.sub(str, arrowStart + 2)
-    return assert(load('return function(' .. argStr .. ') return ' .. exprStr .. ' end')())
-  end
-  getFunction = function(expression)
-    local predType = type(expression)
-    if predType == 'function' then
-      return expression
-    end
-    assert(predType == 'string', 'Invalid predicate type: [' .. predType .. ']')
-    return stringLambda(expression)
   end
   Enumerable = _class_0
 end
