@@ -1,5 +1,5 @@
 package = "LunaQuery"
-version = "0.9-2"
+version = "1.0-1"
 description = {
   summary = "Fluent, Linq-Style Query Expressions for Lua",
   detailed = [[
@@ -21,7 +21,7 @@ dependencies = {
 
 source = {
   url = "git://github.com/jleopore/LunaQuery.git",
-  tag = "v0.9"
+  tag = "v1.0"
 }
 
 build = {
