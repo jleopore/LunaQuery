@@ -22,15 +22,18 @@ class Enumerable
   iterPairs = => enumeratePairs(@items, @orderedBy)
 
   aggregate: (accumulator, initialValue) =>
+    accumulator = getFunction(accumulator)
     result = initialValue
     result = accumulator(result, item) for item in iter(@)
     result
 
   all: (predicate) =>
+    predicate = getFunction(predicate)
     return false for item in iter(@) when not predicate(item)
     true
 
   any: (predicate = defaultPredicate) =>
+    predicate = getFunction(predicate)
     return true for item in iter(@) when predicate(item)
     false  
 
@@ -40,6 +43,7 @@ class Enumerable
     @@(result)
 
   average: (selector = defaultSelector) =>
+    selector = getFunction(selector)
     sum, count = 0, 0    
     for item in iter(@)
       sum += selector(item) 
@@ -54,10 +58,12 @@ class Enumerable
     @@(result)  
 
   contains: (value, equalComparer = defaultEqualComparer) =>
+    equalComparer = getFunction(equalComparer)
     return true for item in iter(@) when equalComparer(value, item)
     false
 
   count: (predicate = defaultPredicate) =>
+    predicate = getFunction(predicate)
     sum = 0
     sum += 1 for item in iter(@) when predicate(item)
     sum  
@@ -65,6 +71,7 @@ class Enumerable
   defaultIfEmpty: (default) => if iter(@)! == nil then return @@({default}) else return @@(@items)
 
   distinct: (equalComparer = defaultEqualComparer) =>
+    equalComparer = getFunction(equalComparer)
     result = {}
     index = 1
     for item in iter(@)
@@ -87,7 +94,8 @@ class Enumerable
   empty: => @@({})
 
   --- distinct elements in this enum but not in the second
-  except: (second, equalComparer = defaultEqualComparer) => 
+  except: (second, equalComparer = defaultEqualComparer) =>
+    equalComparer = getFunction(equalComparer)
     result, i = {}, 1
     for item in iter(@)
       duplicate = false
@@ -106,14 +114,18 @@ class Enumerable
     @@(result)
     
   first: (predicate = defaultPredicate) =>
+    predicate = getFunction(predicate)
     return item for item in iter(@) when predicate(item)
     assert false, 'No item matches the predicate'
 
   firstOrDefault: (default, predicate = defaultPredicate) =>
+    predicate = getFunction(predicate)
     return item for item in iter(@) when predicate(item)
     default
 
-  forEach: (action) => action(item) for item in iter(@)
+  forEach: (action) => 
+    action = getFunction(action)
+    action(item) for item in iter(@)
 
   ---create enumerable from table of unordered key-value pairs
   fromDictionary: (table) => @@([{k,v} for k,v in pairs table])
@@ -133,7 +145,11 @@ class Enumerable
   --   [2]: {[5]: {horse, sheep, whale}}
   -- }
   -- 
-  groupBy: (keySelector, valueSelector = defaultSelector, resultSelector = defaultResultSelector, equalComparer = defaultEqualComparer) =>   
+  groupBy: (keySelector, valueSelector = defaultSelector, resultSelector = defaultResultSelector, equalComparer = defaultEqualComparer) =>
+    keySelector = getFunction(keySelector)
+    valueSelector = getFunction(valueSelector)
+    resultSelector = getFunction(resultSelector)
+    equalComparer = getFunction(equalComparer)
     result = {}
     for item in iter(@)
       key = keySelector(item)
@@ -150,6 +166,10 @@ class Enumerable
     @@([resultSelector(kv[1], kv[2]) for kv in *result])
 
   groupJoin: (inner, outerSelector, innerSelector, resultSelector, equalComparer = defaultEqualComparer) =>
+    outerSelector = getFunction(outerSelector)
+    innerSelector = getFunction(innerSelector)
+    resultSelector = getFunction(resultSelector)
+    equalComparer = getFunction(equalComparer)
     keyedInner = [{innerSelector(item), item} for item in iter(inner)]
     result = {}
     for i, oItem in iterPairs(@)
@@ -164,6 +184,7 @@ class Enumerable
     @@(result)    
 
   intersect: (second, equalComparer = defaultEqualComparer) =>
+    equalComparer = getFunction(equalComparer)
     result = {}
     for item in iter(@)
       isUnique = true
@@ -182,6 +203,10 @@ class Enumerable
 
   --Wherever a keyselector from list 1 matches a keyselector from list 2, add an item to the result.
   join: (inner, outerSelector, innerSelector, resultSelector, equalComparer = defaultEqualComparer) =>
+    outerSelector = getFunction(outerSelector)
+    innerSelector = getFunction(innerSelector)
+    resultSelector = getFunction(resultSelector)
+    equalComparer = getFunction(equalComparer)    
     keyedInner = [{innerSelector(item), item} for item in iter(inner)]
     iResult, result = 1, {}
     for item in iter(@)
@@ -193,17 +218,20 @@ class Enumerable
     @@(result)
 
   last: (predicate = defaultPredicate) =>
+    predicate = getFunction(predicate)
     result = nil
     result = item for item in iter(@) when predicate(item)      
     return result unless result == nil
     assert false, 'No item matches the predicate'
 
-  lastOrDefault: (default, predicate = defaultPredicate) =>    
+  lastOrDefault: (default, predicate = defaultPredicate) =>
+    predicate = getFunction(predicate) 
     result = default
     result = item for item in iter(@) when predicate(item)
     result
 
   max: (selector = defaultSelector) =>
+    selector = getFunction(selector)
     getItem = iter(@)
     result = selector(getItem!)
     for i = 2, @length
@@ -211,7 +239,8 @@ class Enumerable
       if sVal > result then result = sVal
     result
 
-  min: (selector = defaultSelector) =>    
+  min: (selector = defaultSelector) =>
+    selector = getFunction(selector) 
     getItem = iter(@)
     result = selector(getItem!)
     for i = 2, @length
@@ -222,9 +251,13 @@ class Enumerable
   ofType: (whichType) => @@([item for item in iter(@) when type(item) == whichType])
 
   orderBy: (keySelector = defaultSelector, comparer = defaultComparer) =>
+    keySelector = getFunction(keySelector)
+    comparer = getFunction(comparer)
     @@(sortAndGroup([item for item in iter(@)], 0, keySelector, comparer), @length, 1)
 
   orderByDescending: (keySelector = defaultSelector, comparer = defaultComparer) =>
+    keySelector = getFunction(keySelector)
+    comparer = getFunction(comparer)
     @@(sortAndGroup([item for item in iter(@)], 0, keySelector, comparer, true), @length, 1)
 
   prepend: (element) =>     
@@ -242,10 +275,13 @@ class Enumerable
       result[r - i] = item
     @@(result)
  
-  select: (selector) => @@([selector(item, i) for i, item in iterPairs(@)])
+  select: (selector) => 
+    selector = getFunction(selector)
+    @@([selector(item, i) for i, item in iterPairs(@)])
 
   selectMany: (collectionSelector, resultSelector = defaultSelector) =>
-    collectionSelector = collectionSelector or defaultSelector
+    collectionSelector = getFunction(collectionSelector or defaultSelector)
+    resultSelector = getFunction(resultSelector)    
     result = {}
     for i, item in iterPairs(@)
       start = #result
@@ -255,18 +291,21 @@ class Enumerable
 
   sequenceEqual: (second, equalComparer = defaultEqualComparer) =>    
     return false unless @length == second.length
+    equalComparer = getFunction(equalComparer)
     getItem1, getItem2 = iter(@), iter(second)
     for i = 1, @length
       return false unless equalComparer(getItem1!, getItem2!)
     true
 
-  single: (predicate = defaultPredicate) =>    
+  single: (predicate = defaultPredicate) =>
+    predicate = getFunction(predicate)
     result = [item for item in iter(@) when predicate(item)]
     assert #result != 0, 'collection is empty'
     assert #result == 1, 'collection has multiple values'
     result[1]
 
-  singleOrDefault: (default, predicate = defaultPredicate) =>    
+  singleOrDefault: (default, predicate = defaultPredicate) =>
+    predicate = getFunction(predicate)  
     result = [item for item in iter(@) when predicate(item)]
     return default if #result == 0
     assert #result == 1, 'collection has multiple values'
@@ -280,7 +319,8 @@ class Enumerable
     @@(result)
 
   --Go through the list in a single iteration.
-  skipWhile: (predicate) =>    
+  skipWhile: (predicate) =>
+    predicate = getFunction(predicate)
     result, getItem = {}, iter(@)
     for i = 1, @length
       item = getItem!
@@ -290,7 +330,8 @@ class Enumerable
         break
     @@(result)
 
-  sum: (selector = defaultSelector) =>    
+  sum: (selector = defaultSelector) =>
+    selector = getFunction(selector)
     sum = 0
     sum += selector(item) for item in iter(@)
     sum
@@ -304,22 +345,29 @@ class Enumerable
   takeLast: (count) => @@[item for i,item in iterPairs(@) when i > @length - count]
 
   takeWhile: (predicate) =>
+    predicate = getFunction(predicate)
     result = {}
     for i,item in iterPairs(@)
       if predicate(item) then result[i] = item else break
     @@(result)
 
-  thenBy: (keySelector = defaultSelector, comparer = defaultComparer) => 
+  thenBy: (keySelector = defaultSelector, comparer = defaultComparer) =>
+    keySelector = getFunction(keySelector)
+    comparer = getFunction(comparer)
     assert @orderedBy > 0, 'not implemented'
     @@(sortAndGroup(@items, @orderedBy, keySelector, comparer), @length, @orderedBy + 1)
 
-  thenByDescending: (keySelector = defaultSelector, comparer = defaultComparer) => 
+  thenByDescending: (keySelector = defaultSelector, comparer = defaultComparer) =>
+    keySelector = getFunction(keySelector)
+    comparer = getFunction(comparer)
     assert @orderedBy > 0, 'not implemented'
     @@(sortAndGroup(@items, @orderedBy, keySelector, comparer, true), @length, @orderedBy + 1)
 
   toArray: => [item for item in iter(@)]  
 
   toDictionary: (keySelector, valueSelector = defaultSelector) =>
+    keySelector = getFunction(keySelector)
+    valueSelector = getFunction(valueSelector)
     result = {}
     for item in iter(@)
       k = keySelector(item)
@@ -339,6 +387,8 @@ class Enumerable
   toList: => @toArray!
 
   toLookup: (keySelector, valueSelector = defaultSelector) =>
+    keySelector = getFunction(keySelector)
+    valueSelector = getFunction(valueSelector)
     result = {}
     for item in iter(@) 
       k = keySelector(item)
@@ -347,6 +397,7 @@ class Enumerable
     result
 
   union: (second, equalComparer = defaultEqualComparer) =>
+    equalComparer = getFunction(equalComparer)
     result = {}
     index = 1
     for item in iter(@)
@@ -369,10 +420,13 @@ class Enumerable
         index += 1
     @@(result)
 
-  where: (predicate) => @@[item for item in iter(@) when predicate(item)]
+  where: (predicate) => 
+    predicate = getFunction(predicate)
+    @@[item for item in iter(@) when predicate(item)]
 
   --two collections
-  zip: (second, resultSelector = defaultResultSelector) =>        
+  zip: (second, resultSelector = defaultResultSelector) =>
+    resultSelector = getFunction(resultSelector)      
     return {} if length == 0
     length = math.min @length, second.length
     result, getItem1, getItem2 = {}, iter(@), iter(second)
@@ -472,5 +526,23 @@ class Enumerable
       else
         r += 1
         return right[r - 1]
+
+  load = _G.loadstring or _G.load  --for compatibility with lua 5.1
+
+  --- Transform a string lambda into a function
+  stringLambda = (str) ->
+    arrowStart = assert string.find(str, '->'), 'Invalid string lambda: "'..str..'"'
+    argStr = string.sub(str, 1, arrowStart - 1) --arguments come before the arrow
+    argStr = string.gsub(string.gsub(argStr, '%(', ''), '%)', '') --remove parentheses
+    exprStr = string.sub(str, arrowStart + 2) --expression comes after the arrow
+    assert load('return function('..argStr..') return '..exprStr..' end')!
+
+  --- Accept either a function or a string lambda, and return a function.
+  -- this might need to have the local _ENV passed in, to reference other functions
+  getFunction = (expression) ->
+    predType = type(expression)
+    return expression if predType == 'function'
+    assert predType == 'string', 'Invalid predicate type: ['..predType..']'
+    stringLambda(expression)
 
 Enumerable
